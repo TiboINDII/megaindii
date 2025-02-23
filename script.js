@@ -126,14 +126,14 @@ function processResults(results) {
     const resultsTable = document.getElementById('resultsTable');
     resultsBody.innerHTML = '';
     
-    // Add download button before the table
-    if (!document.querySelector('.download-button')) {
+    // Remove this section that adds a download button
+    /*if (!document.querySelector('.download-button')) {
         const downloadButton = document.createElement('button');
         downloadButton.className = 'download-button';
         downloadButton.innerHTML = '<i class="fas fa-file-excel"></i> Download Excel';
         downloadButton.onclick = downloadTableToExcel;
         resultsTable.parentNode.insertBefore(downloadButton, resultsTable);
-    }
+    }*/
     
     let rowsData = [];
 
@@ -508,13 +508,16 @@ function updateTable(rowsData) {
         const addressStyle = isDuplicateAddress ? 'color: #ff4444; font-weight: bold;' : '';
         const phoneStyle = isDuplicatePhone ? 'color: #ff4444; font-weight: bold;' : '';
             
+        // Format phone number with clickable icon
+        const phoneNumber = data.phone !== '-' ? data.phone : '-';
+            
         row.innerHTML = `
             <td style="${nameStyle}">${statusCircle}${data.name}</td>
             <td>${data.owner}</td>
             <td>${data.category}</td>
             <td style="${addressStyle}">${data.streetAddress}</td>
             <td>${data.postalAndCity}</td>
-            <td style="${phoneStyle}">${data.phone}</td>
+            <td style="${phoneStyle}">${phoneNumber}</td>
             <td>${data.socialLinks}</td>
             <td>${data.closingDays}</td>
             <td>${typeof data.rating === 'number' ? data.rating.toFixed(1) + ' ⭐' : '-'}</td>
@@ -526,6 +529,9 @@ function updateTable(rowsData) {
         `;
         resultsBody.appendChild(row);
     });
+
+    // Add download button after table is populated
+    addDownloadButton();
 }
 
 function formatSocialLinks(placeDetails) {
@@ -768,6 +774,9 @@ function addDownloadButtons() {
         <button onclick="downloadResults('csv')" class="btn-download">
             <i class="fas fa-file-csv"></i> Download CSV
         </button>
+        <button onclick="toggleMobileView()" class="btn-download btn-mobile-view" id="toggleViewBtn">
+            <i class="fas fa-mobile-alt"></i> Mobiele weergave
+        </button>
     `;
     document.getElementById('resultsTable').parentNode.insertBefore(buttonContainer, document.getElementById('resultsTable'));
 }
@@ -952,6 +961,121 @@ function downloadTableToExcel() {
     
     // Generate Excel file and trigger download
     XLSX.writeFile(wb, "business_results.xlsx");
+}
+
+function toggleMobileView() {
+    const table = document.getElementById('resultsTable');
+    const rows = Array.from(document.querySelectorAll('#resultsBody tr'));
+    const toggleBtn = document.getElementById('toggleViewBtn');
+    
+    if (!table.classList.contains('mobile-view')) {
+        // Switch to mobile view
+        table.classList.add('mobile-view');
+        toggleBtn.innerHTML = '<i class="fas fa-table"></i> Tabel weergave';
+        
+        rows.forEach(row => {
+            const cells = Array.from(row.cells);
+            const mobileRow = document.createElement('div');
+            mobileRow.className = 'mobile-row';
+            
+            // Get the status circle from the name
+            const statusCircle = cells[0].innerHTML.match(/<span style="color: #[0-9a-fA-F]{6};">●<\/span>/)?.[0] || '';
+            
+            // Create mobile-friendly layout
+            mobileRow.innerHTML = `
+                <div class="business-name">${statusCircle}${cells[0].textContent.replace(/[●]/, '').trim()}</div>
+                <div class="business-phone">${cells[5].innerHTML}</div>
+                <div class="business-address">${cells[3].textContent}, ${cells[4].textContent}</div>
+                <div class="business-details">
+                    <span class="rating">${cells[8].textContent}</span>
+                    <span class="social-links">${cells[6].innerHTML}</span>
+                </div>
+            `;
+            
+            row.style.display = 'none';
+            row.parentNode.insertBefore(mobileRow, row);
+        });
+    } else {
+        // Switch back to table view
+        table.classList.remove('mobile-view');
+        toggleBtn.innerHTML = '<i class="fas fa-mobile-alt"></i> Mobiele weergave';
+        
+        document.querySelectorAll('.mobile-row').forEach(mobileRow => mobileRow.remove());
+        rows.forEach(row => row.style.display = '');
+    }
+}
+
+function addDownloadButton() {
+    // Remove ALL existing buttons
+    const existingButtons = document.querySelectorAll('.download-buttons, .download-button');
+    existingButtons.forEach(button => button.remove());
+
+    const buttonContainer = document.createElement('div');
+    buttonContainer.className = 'download-buttons';
+    buttonContainer.innerHTML = `
+        <button onclick="downloadTableToExcel()" class="btn-download">
+            <i class="fas fa-file-excel"></i> Download Excel
+        </button>
+        <button onclick="toggleCallList()" class="btn-download" id="callListBtn">
+            <i class="fas fa-phone-alt"></i> Bel lijst
+        </button>
+    `;
+    
+    const resultsTable = document.getElementById('resultsTable');
+    resultsTable.parentNode.insertBefore(buttonContainer, resultsTable);
+}
+
+function toggleCallList() {
+    const table = document.getElementById('resultsTable');
+    const callListBtn = document.getElementById('callListBtn');
+    const rows = Array.from(document.querySelectorAll('#resultsBody tr'));
+    
+    if (!table.classList.contains('call-list-view')) {
+        // Switch to call list view
+        table.classList.add('call-list-view');
+        callListBtn.innerHTML = '<i class="fas fa-table"></i> Tabel weergave';
+        
+        // Create call list container
+        const callListContainer = document.createElement('div');
+        callListContainer.id = 'callListContainer';
+        callListContainer.className = 'call-list-container';
+        
+        // Create list items from table data
+        rows.forEach(row => {
+            const cells = Array.from(row.cells);
+            const businessName = cells[0].textContent.replace(/[●]/, '').trim();
+            const phone = cells[5].textContent.trim();
+            
+            const listItem = document.createElement('div');
+            listItem.className = 'call-list-item';
+            listItem.innerHTML = `
+                <div class="business-name">${businessName}</div>
+                <div class="phone-number">
+                    ${phone}
+                    <a href="tel:${phone.replace(/[^\d+]/g, '')}" class="phone-link">
+                        <i class="fas fa-phone"></i>
+                    </a>
+                </div>
+            `;
+            callListContainer.appendChild(listItem);
+        });
+        
+        // Hide table and show call list
+        table.style.display = 'none';
+        table.parentNode.insertBefore(callListContainer, table.nextSibling);
+        
+    } else {
+        // Switch back to table view
+        table.classList.remove('call-list-view');
+        callListBtn.innerHTML = '<i class="fas fa-phone-alt"></i> Bel lijst';
+        
+        // Remove call list and show table
+        const callListContainer = document.getElementById('callListContainer');
+        if (callListContainer) {
+            callListContainer.remove();
+        }
+        table.style.display = 'table';
+    }
 }
 
 

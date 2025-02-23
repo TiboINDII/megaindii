@@ -1,9 +1,12 @@
 <!DOCTYPE html>
 <html lang="nl">
 <head>
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Zakelijke Leads Generator | Google Maps</title>
+    <title>Mega INDII | Google Maps</title>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
@@ -324,6 +327,191 @@ t            color: var(--secondary);
 
         .thumbs-icon {
             margin-left: 5px;
+        }
+
+        /* Responsive Design */
+        @media screen and (max-width: 1200px) {
+            .container {
+                padding: 1rem;
+            }
+        }
+
+        @media screen and (max-width: 992px) {
+            .results-table {
+                display: block;
+                overflow-x: auto;
+                white-space: nowrap;
+            }
+
+            .search-card {
+                padding: 1.5rem;
+            }
+        }
+
+        @media screen and (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .logo-title {
+                align-items: center;
+            }
+
+            h1 {
+                font-size: 20px;
+            }
+
+            .mi-logo {
+                height: 30px;
+            }
+
+            .search-card {
+                padding: 1rem;
+            }
+
+            .form-group {
+                margin-bottom: 1rem;
+            }
+
+            .btn-search {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .download-buttons {
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .btn-download {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+
+        @media screen and (max-width: 480px) {
+            .container {
+                padding: 0.5rem;
+            }
+
+            .header {
+                padding: 15px 0;
+            }
+
+            .search-card {
+                padding: 0.8rem;
+                margin-bottom: 1rem;
+            }
+
+            .form-group input {
+                padding: 0.6rem;
+            }
+
+            .results-table td, 
+            .results-table th {
+                padding: 8px 6px;
+                font-size: 14px;
+            }
+
+            /* Make table cells more compact on mobile */
+            .results-table td {
+                max-width: 200px;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+        }
+
+        /* Improve table responsiveness */
+        .results-table {
+            min-width: 100%;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        /* Improve modal responsiveness */
+        .modal-content {
+            width: 95%;
+            max-width: 1200px;
+            margin: 20px auto;
+        }
+
+        @media screen and (max-width: 600px) {
+            .slider-nav {
+                padding: 10px;
+                font-size: 16px;
+            }
+
+            .modal-content {
+                margin: 10px auto;
+            }
+
+            .close {
+                font-size: 24px;
+                right: 10px;
+                top: 10px;
+            }
+        }
+
+        /* Add these styles to your existing CSS */
+        .mobile-row {
+            background: white;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            padding: 15px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .mobile-row .business-name {
+            font-size: 16px;
+            font-weight: bold;
+            color: white;
+            background: var(--primary);
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 8px;
+        }
+
+        .mobile-row .business-phone {
+            font-weight: bold;
+            font-size: 15px;
+            margin-bottom: 8px;
+        }
+
+        .mobile-row .business-address {
+            color: #666;
+            margin-bottom: 8px;
+        }
+
+        .mobile-row .business-details {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 14px;
+        }
+
+        .mobile-row .rating {
+            color: #666;
+        }
+
+        .mobile-row .social-links a {
+            margin-left: 8px;
+            color: var(--primary);
+        }
+
+        /* Hide mobile view button on larger screens */
+        @media screen and (min-width: 769px) {
+            .btn-mobile-view {
+                display: none;
+            }
+        }
+
+        /* Show mobile view button on mobile screens */
+        @media screen and (max-width: 768px) {
+            .btn-mobile-view {
+                display: inline-flex;
+            }
         }
     </style>
 </head>
@@ -685,6 +873,50 @@ th[data-column] {
     transform: translateX(-50%);
     white-space: nowrap;
     z-index: 1000;
+}
+
+.call-list-container {
+    max-width: 600px;
+    margin: 20px auto;
+    padding: 20px;
+}
+
+.call-list-item {
+    background: white;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    padding: 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    text-align: center;
+}
+
+.call-list-item .business-name {
+    color: #007272;
+    font-weight: bold;
+    font-size: 18px;
+    margin-bottom: 10px;
+}
+
+.call-list-item .phone-number {
+    color: black;
+    font-weight: bold;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.phone-link {
+    color: #007272;
+    text-decoration: none;
+    padding: 5px 10px;
+    border-radius: 5px;
+    transition: background-color 0.3s;
+}
+
+.phone-link:hover {
+    background-color: #f0f0f0;
 }
 </style>
 <script src="quotes.js"></script>
