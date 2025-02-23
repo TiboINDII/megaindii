@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zakelijke Leads Generator | Google Maps</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
+    <style>
+        :root {
+            --primary: #007272;
+            --secondary: #60BEB5;
+            --dark-blue: #073863;
+            --text-color: #333333;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Montserrat', sans-serif;
+        }
+
+        body {
+            background-color: #f5f5f5;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .header {
+            background-color: var(--primary);
+            color: white;
+            padding: 20px 0;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .header-content {
+            display: flex;
+            align-items: center;
+        }
+
+        .logo-title {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 10px;
+        }
+
+        .mi-logo {
+            height: 40px;
+            width: auto;
+        }
+
+        h1 {
+            font-size: 24px;
+            margin: 0;
+        }
+
+        /* Ensure container remains properly styled */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        .search-card {
+            background: white;
+            border-radius: 10px;
+            padding: 2rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 2rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: var(--text-color);
+            font-weight: 500;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 0.8rem;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 1rem;
+        }
+
+        .btn-search {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: background-color 0.3s;
+        }
+
+        .btn-search:hover {
+            background-color: var(--secondary);
+        }
+
+        .results-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-top: 20px;
+            font-size: 14px; /* Decreased from 16px (browser default) to 14px */
+        }
+
+        .results-table th {
+            background-color: var(--dark-blue);
+            color: white;
+            padding: 10px; /* Slightly reduced padding to match smaller font */
+            text-align: left;
+            font-weight: 600;
+            position: relative;
+        }
+
+        .results-table th:after {
+            content: '';  /* Remove default arrow content */
+        }
+
+        .results-table th[data-column]:hover:after {
+            content: '↕';
+            position: absolute;
+            right: 8px;
+            opacity: 0.5;
+        }
+
+        .results-table th.sort-asc:after {
+            content: '↓' !important;  /* Changed: arrow points down for ascending values */
+            position: absolute;
+            right: 8px;
+            opacity: 1;
+        }
+
+        .results-table th.sort-desc:after {
+            content: '↑' !important;  /* Changed: arrow points up for descending values */
+            position: absolute;
+            right: 8px;
+            opacity: 1;
+        }
+
+        .results-table th {
+            position: relative;
+            padding-right: 25px;  /* Make room for the arrow */
+        }
+
+        .results-table td {
+            padding: 10px; /* Slightly reduced padding to match smaller font */
+            border-bottom: 1px solid #eee;
+        }
+
+        .results-table tr:hover {
+            background-color: #f8f8f8;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .error-message {
+            display: none;
+            background-color: #ff5757;
+            color: white;
+            padding: 1rem;
+            border-radius: 5px;
+            margin-bottom: 1rem;
+        }
+
+        .social-links a {
+            margin: 0 5px;
+            color: var(--primary);
+            text-decoration: none;
+            font-size: 1.1em;
+        }
+
+        .social-links a:hover {
+t            color: var(--secondary);
+        }
+
+        .amenities-list {
+            max-width: 200px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        #map {
+            height: 1px !important;
+            visibility: hidden;
+        }
+
+        .download-buttons {
+            margin: 20px 0;
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-download {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 5px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: background-color 0.3s;
+        }
+
+        .btn-download:hover {
+            background-color: var(--secondary);
+        }
+
+        .sort-asc:after {
+            content: ' ↓';  /* Changed: arrow points down for ascending values */
+        }
+
+        .sort-desc:after {
+            content: ' ↑';  /* Changed: arrow points up for descending values */
+        }
+
+        /* Tooltip styles */
+        .tooltip {
+            position: relative;
+            display: inline-block;
+        }
+
+        .tooltip .tooltiptext {
+            visibility: hidden;
+            width: 300px;
+            background-color: #333;
+            color: white;
+            text-align: left;
+            border-radius: 6px;
+            padding: 10px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            transform: translateX(-50%);
+            opacity: 0;
+            transition: opacity 0.3s;
+            font-size: 0.9em;
+            line-height: 1.4;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .tooltip:hover .tooltiptext {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        /* Heat map colors - updated for full cell coverage */
+        .heat-1 { background-color: #ff4d4d !important; color: white; }
+        .heat-2 { background-color: #ff8080 !important; color: white; }
+        .heat-3 { background-color: #ffb3b3 !important; }
+        .heat-4 { background-color: #ffe6e6 !important; }
+        .heat-5 { background-color: #e6ffe6 !important; }
+        .heat-6 { background-color: #b3ffb3 !important; }
+        .heat-7 { background-color: #80ff80 !important; }
+        .heat-8 { background-color: #4dff4d !important; }
+
+        /* Style for the rank cell */
+        .rank-cell {
+            padding: 12px !important;
+            text-align: center;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .rank-main {
+            font-size: 1.1em;
+            margin-bottom: 5px;
+        }
+
+        .score-details {
+            font-size: 0.8em;
+            text-align: left;
+            margin-top: 5px;
+            padding-top: 5px;
+            border-top: 1px solid rgba(0,0,0,0.1);
+        }
+
+        .score-details div {
+            margin: 2px 0;
+            white-space: nowrap;
+        }
+
+        /* Ensure text is readable on all background colors */
+        .heat-1, .heat-2 {
+            color: white;
+        }
+
+        .heat-3, .heat-4, .heat-5, .heat-6, .heat-7, .heat-8 {
+            color: #333;
+        }
+
+        .rank-cell:hover {
+            transform: scale(1.02);
+        }
+
+        .thumbs-icon {
+            margin-left: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="container">
+            <div class="header-content">
+                <div class="logo-title">
+                    <img src="mi.svg" alt="MI Logo" class="mi-logo">
+                    <h1><i class="fas fa-search-location"></i> Leads Generator</h1>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add new quote section -->
+    <div class="quote-container">
+        <div class="container">
+            <div class="quote-card">
+                <div class="book-image">
+                    <img src="book.png" alt="Book">
+                </div>
+                <div class="quote-frame">
+                    <div class="dont-say">don't say</div>
+                    <div class="quote-text" id="quoteText"></div>
+                    <div class="but-say">but say</div>
+                    <div class="quote-source" id="quoteSource"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .quote-container {
+            background-color: transparent;
+            padding: 20px 0;
+            position: relative;
+            margin: 20px 0 0 0; /* Added top margin for one line spacing */
+        }
+
+        .quote-card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 20px 20px 20px 190px; /* Adjusted from 210px for smaller image */
+            position: relative;
+            margin: 0 auto;
+            max-width: 800px;
+            min-height: 200px;
+            display: flex;
+            align-items: center;
+        }
+
+        .book-image {
+            position: absolute;
+            left: -50px; /* Adjusted from -56px for new width */
+            top: 50%;
+            transform: translateY(-50%);
+            width: 202px; /* Reduced from 225px by 10% */
+            height: 309px; /* Reduced from 343px by 10% */
+            z-index: 1;
+        }
+
+        .book-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .quote-frame {
+            flex: 1;
+            text-align: center;
+            padding: 10px;
+        }
+
+        .dont-say {
+            font-family: "Times New Roman", Times, serif;
+            font-size: 16px;
+            font-weight: normal;
+            color: #666;
+        }
+
+        .quote-text {
+            font-family: "Times New Roman", Times, serif;
+            font-size: 36px;
+            font-style: italic;
+            margin: 10px 0;
+            color: #333;
+        }
+
+        .but-say {
+            font-family: "Times New Roman", Times, serif;
+            font-size: 16px;
+            font-weight: normal;
+            color: #666;
+        }
+
+        .quote-source {
+            font-family: "Times New Roman", Times, serif;
+            font-size: 20px;
+            font-weight: normal;
+            margin-top: 8px;
+            color: #333;
+        }
+    </style>
+
+    <script>
+        // Add this to your existing JavaScript or in a separate script tag
+        document.addEventListener('DOMContentLoaded', function() {
+            function updateQuote() {
+                const quote = getRandomQuote();
+                document.getElementById('quoteText').textContent = quote.dontSay;
+                document.getElementById('quoteSource').textContent = quote.butSay;
+            }
+
+            // Update quote on page load
+            updateQuote();
+
+            // Optional: Update quote every X seconds
+            // setInterval(updateQuote, 10000); // Updates every 10 seconds
+        });
+    </script>
+
+    <div class="container">
+        <div class="search-card">
+            <form id="searchForm">
+                <div class="form-group">
+                    <label><i class="fas fa-map-marker-alt"></i> Locatie</label>
+                    <input type="text" id="location" placeholder="Enter location" required>
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-store"></i> Bedrijfstype</label>
+                    <input type="text" id="businessType" placeholder="Enter business type" required>
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-list-ol"></i> Aantal locaties <span id="locationValue">60</span></label>
+                    <input type="range" 
+                           id="locationCount" 
+                           min="20" 
+                           max="1000" 
+                           step="20" 
+                           value="60" 
+                           class="slider">
+                </div>
+                <button type="submit" class="btn-search">
+                    <i class="fas fa-search"></i> Zoeken
+                </button>
+            </form>
+        </div>
+
+        <div id="errorMessage" class="error-message"></div>
+        <div id="loading" class="loading">
+            <i class="fas fa-spinner fa-spin fa-2x"></i>
+            <p>Gegevens ophalen...</p>
+        </div>
+
+        <table class="results-table" id="resultsTable" style="display: none;">
+            <thead>
+                <tr>
+                    <th data-column="name">Bedrijfsnaam</th>
+                    <th data-column="owner">Eigenaar</th>
+                    <th data-column="category">Categorie</th>
+                    <th data-column="streetAddress">Adres</th>
+                    <th data-column="postalAndCity">Plaats</th>
+                    <th data-column="phone">Telefoon</th>
+                    <th data-column="socialLinks">Social Media</th>
+                    <th data-column="closingDays">Sluitingsdagen</th>
+                    <th data-column="rating">Beoordeling</th>
+                    <th data-column="ratingCount">Aantal Reviews</th>
+                    <th data-column="priceLevel">Prijsniveau</th>
+                    <th data-column="photoCount">Foto's</th>
+                    <th data-column="lastReviewDate">Laatste Review</th>
+                    <th data-column="distance">Afstand</th>
+                </tr>
+            </thead>
+            <tbody id="resultsBody"></tbody>
+        </table>
+    </div>
+
+    <div id="map" style="height: 0; width: 100%; overflow: hidden;"></div>
+
+    <div id="photoModal" class="modal">
+        <span class="close">&times;</span>
+        <div class="modal-content">
+            <div class="slider-container">
+                <div class="slider-wrapper">
+                    <div id="photoSlider"></div>
+                </div>
+                <button class="slider-nav prev"><i class="fas fa-chevron-left"></i></button>
+                <button class="slider-nav next"><i class="fas fa-chevron-right"></i></button>
+            </div>
+        </div>
+    </div>
+
+    <script src="opening_hours.js"></script>
+    <script src="script.js"></script>
+    
+    <script async
+        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDvkpaHy8GiE9mlZZl6Cyr6O_eRQlIaxZs&libraries=places,geometry&language=en&callback=initMap">
+    </script>
+</body>
+</html>
+
+<style>
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.9);
+}
+
+.modal-content {
+    position: relative;
+    margin: auto;
+    width: 90%;
+    max-width: 800px;
+    height: 90vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.close {
+    position: absolute;
+    right: 20px;
+    top: 20px;
+    color: #f1f1f1;
+    font-size: 40px;
+    font-weight: bold;
+    cursor: pointer;
+    z-index: 1001;
+}
+
+.slider-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.slider-wrapper {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#photoSlider {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#photoSlider img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+}
+
+.slider-nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(255,255,255,0.3);
+    border: none;
+    color: white;
+    padding: 15px;
+    cursor: pointer;
+    border-radius: 50%;
+    transition: background-color 0.3s;
+}
+
+.slider-nav:hover {
+    background: rgba(255,255,255,0.5);
+}
+
+.prev {
+    left: 20px;
+}
+
+.next {
+    right: 20px;
+}
+
+.photo-icon {
+    cursor: pointer;
+    color: var(--primary);
+    transition: color 0.3s;
+}
+
+.photo-icon:hover {
+    color: var(--secondary);
+}
+
+.download-button {
+    background-color: var(--primary);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 15px;
+    transition: background-color 0.3s;
+}
+
+.download-button:hover {
+    background-color: var(--secondary);
+}
+
+.download-button i {
+    font-size: 1.1em;
+}
+
+.sort-asc::after {
+    content: " ↓";  /* Changed: arrow points down for ascending values */
+}
+
+.sort-desc::after {
+    content: " ↑";  /* Changed: arrow points up for descending values */
+}
+
+th[data-column] {
+    cursor: pointer;
+}
+
+.results-table th[data-column="name"],
+.results-table th[data-column="streetAddress"],
+.results-table th[data-column="phone"] {
+    transition: color 0.3s ease;
+}
+
+.results-table td[style*="color: #ff4444"] {
+    position: relative;
+}
+
+.results-table td[style*="color: #ff4444"]:hover::after {
+    content: "Duplicate entry";
+    position: absolute;
+    background: #333;
+    color: white;
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    white-space: nowrap;
+    z-index: 1000;
+}
+</style>
+<script src="quotes.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        function updateQuote() {
+            const quote = getRandomQuote();
+            document.getElementById('quoteText').textContent = quote.dontSay;
+            document.getElementById('quoteSource').textContent = quote.butSay;
+        }
+
+        // Update quote on page load
+        updateQuote();
+
+        // Optional: Update quote every X seconds
+        // setInterval(updateQuote, 10000); // Updates every 10 seconds
+    });
+</script>
