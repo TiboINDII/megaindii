@@ -1045,18 +1045,39 @@ function toggleCallList() {
             const cells = Array.from(row.cells);
             const businessName = cells[0].textContent.replace(/[●]/, '').trim();
             const phone = cells[5].textContent.trim();
+            const owner = cells[1].textContent.trim(); // Changed from cells[2] to cells[1] for owner
+            const address = cells[3].textContent.trim();
+            const city = cells[4].textContent.trim();
             
             const listItem = document.createElement('div');
             listItem.className = 'call-list-item';
             listItem.innerHTML = `
-                <div class="business-name">${businessName}</div>
-                <div class="phone-number">
-                    ${phone}
-                    <a href="tel:${phone.replace(/[^\d+]/g, '')}" class="phone-link">
-                        <i class="fas fa-phone"></i>
-                    </a>
+                <div class="call-list-card">
+                    <div class="card-front">
+                        <div class="business-name">${businessName}</div>
+                        <div class="phone-number">
+                            ${phone}
+                            <a href="tel:${phone.replace(/[^\d+]/g, '')}" class="phone-link">
+                                <i class="fas fa-phone"></i>
+                            </a>
+                        </div>
+                    </div>
+                    <div class="card-back">
+                        <div class="card-value">${owner}</div>
+                        <div class="card-value">${address}</div>
+                        <div class="card-value">${city}</div>
+                    </div>
                 </div>
             `;
+            
+            // Add click handler for card flipping
+            listItem.addEventListener('click', (e) => {
+                // Don't flip if clicking the phone link
+                if (!e.target.closest('.phone-link')) {
+                    listItem.classList.toggle('flipped');
+                }
+            });
+            
             callListContainer.appendChild(listItem);
         });
         
