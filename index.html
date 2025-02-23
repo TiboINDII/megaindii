@@ -198,7 +198,7 @@
         }
 
         .social-links a:hover {
-t            color: var(--secondary);
+            color: var(--secondary);
         }
 
         .amenities-list {
@@ -575,6 +575,27 @@ t            color: var(--secondary);
             z-index: 1;
         }
 
+        @media screen and (max-width: 768px) and (orientation: portrait) {
+            .book-image {
+                width: 101px; /* Reduced by 50% from 202px */
+                height: 155px; /* Reduced by 50% from 309px */
+                left: -25px; /* Adjusted from -50px to maintain proportional positioning */
+            }
+
+            .quote-card {
+                padding: 20px 20px 20px 95px; /* Adjusted left padding (reduced by 50% from 190px) */
+                min-height: 150px; /* Reduced from 200px */
+            }
+
+            .quote-text {
+                font-size: 24px; /* Reduced from 36px for better fit */
+            }
+
+            .quote-source {
+                font-size: 16px; /* Reduced from 20px */
+            }
+        }
+
         .book-image img {
             width: 100%;
             height: 100%;
@@ -671,6 +692,7 @@ t            color: var(--secondary);
         <table class="results-table" id="resultsTable" style="display: none;">
             <thead>
                 <tr>
+                    <th data-column="stand">Stand</th>
                     <th data-column="name">Bedrijfsnaam</th>
                     <th data-column="owner">Eigenaar</th>
                     <th data-column="category">Categorie</th>

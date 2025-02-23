@@ -210,9 +210,10 @@ function processResults(results) {
                 // Photos count
                 const photoCount = placeDetails.photos?.length || 0;
 
-                // Last review date
-                const lastReviewDate = placeDetails.reviews?.[0]?.time ? 
-                    new Date(placeDetails.reviews[0].time * 1000).toLocaleDateString() : '-';
+                // Last review date and timestamp
+                const lastReviewTimestamp = placeDetails.reviews?.[0]?.time || '-';
+                const lastReviewDate = lastReviewTimestamp !== '-' ? 
+                    new Date(lastReviewTimestamp * 1000).toLocaleDateString() : '-';
 
                 const rowData = {
                     name: placeDetails.name || '-',
@@ -231,6 +232,7 @@ function processResults(results) {
                         `<i class="fas fa-images photo-icon" onclick="showPhotos(\`${place.place_id}\`)"></i> ${placeDetails.photos.length}` : 
                         '0',
                     lastReviewDate: lastReviewDate,
+                    lastReviewTimestamp: placeDetails.reviews?.[0]?.time || 0,
                     distance: distance
                 };
 
@@ -420,15 +422,40 @@ function findDuplicates(rowsData) {
         streetAddress: new Map(),
         phone: new Map()
     };
+    
+    // Store phone numbers with their addresses and mark duplicates
+    const phoneAddresses = new Map();
+    const phonesWithDifferentAddresses = new Set();
 
-    // Count occurrences
+    // First pass: Collect all phone numbers and their addresses
     rowsData.forEach(row => {
+        const phone = row.phone.toLowerCase().trim();
+        const address = row.streetAddress.toLowerCase().trim();
+        
+        if (phone !== '-') {
+            if (!phoneAddresses.has(phone)) {
+                phoneAddresses.set(phone, new Set());
+            }
+            if (address !== '-') {
+                phoneAddresses.get(phone).add(address);
+            }
+        }
+
+        // Also count regular duplicates
         ['name', 'streetAddress', 'phone'].forEach(field => {
             const value = row[field].toLowerCase().trim();
             if (value !== '-') {
                 duplicates[field].set(value, (duplicates[field].get(value) || 0) + 1);
             }
         });
+    });
+
+    // Second pass: Identify phones with different addresses
+    phoneAddresses.forEach((addresses, phone) => {
+        if (addresses.size > 1) {
+            console.log(`Found phone ${phone} with multiple addresses:`, Array.from(addresses));
+            phonesWithDifferentAddresses.add(phone);
+        }
     });
 
     // Filter to only keep actual duplicates (count > 1)
@@ -451,7 +478,7 @@ function findDuplicates(rowsData) {
         phone: duplicateValues.phone.size
     };
 
-    return { duplicateValues, duplicateCounts };
+    return { duplicateValues, duplicateCounts, phonesWithDifferentAddresses };
 }
 
 function updateTable(rowsData) {
@@ -459,7 +486,7 @@ function updateTable(rowsData) {
     resultsBody.innerHTML = '';
 
     // Find duplicates
-    const { duplicateValues, duplicateCounts } = findDuplicates(rowsData);
+    const { duplicateValues, duplicateCounts, phonesWithDifferentAddresses } = findDuplicates(rowsData);
 
     // Update headers with duplicate counts
     const headers = document.querySelectorAll('#resultsTable th');
@@ -477,19 +504,24 @@ function updateTable(rowsData) {
     });
 
     // Set default sorting
-    currentSortColumn = 'ratingCount';
-    sortDirection = 'desc';
+    currentSortColumn = 'stand';
+    sortDirection = 'asc';
 
     // Update sorting indicator on the header
-    const ratingCountHeader = Array.from(headers).find(h => h.getAttribute('data-column') === 'ratingCount');
+    const standHeader = Array.from(headers).find(h => h.getAttribute('data-column') === 'stand');
     headers.forEach(h => h.classList.remove('sort-asc', 'sort-desc'));
-    ratingCountHeader.classList.add('sort-desc');
+    standHeader.classList.add('sort-asc');
 
-    // Sort data by rating count
+    // Sort data by stand value (using natural number comparison)
     rowsData.sort((a, b) => {
-        const aVal = a.ratingCount === '-' ? -1 : parseInt(a.ratingCount);
-        const bVal = b.ratingCount === '-' ? -1 : parseInt(b.ratingCount);
-        return bVal - aVal; // descending order
+        const aMatch = a.tiboRank ? a.tiboRank.match(/#(\d+)/) : null;
+        const bMatch = b.tiboRank ? b.tiboRank.match(/#(\d+)/) : null;
+        
+        const aVal = aMatch ? parseInt(aMatch[1], 10) : Number.MAX_SAFE_INTEGER;
+        const bVal = bMatch ? parseInt(bMatch[1], 10) : Number.MAX_SAFE_INTEGER;
+
+        console.log(`Comparing ranks: ${aVal} vs ${bVal}`);
+        return aVal - bVal;
     });
 
     rowsData.forEach(data => {
@@ -511,8 +543,61 @@ function updateTable(rowsData) {
         // Format phone number with clickable icon
         const phoneNumber = data.phone !== '-' ? data.phone : '-';
             
-        row.innerHTML = `
-            <td style="${nameStyle}">${statusCircle}${data.name}</td>
+            // Pre-calculate all ranks
+            const allRanks = rowsData.map(item => {
+                const reviewRank = rowsData
+                    .map(i => i.ratingCount)
+                    .sort((a, b) => b - a)
+                    .indexOf(item.ratingCount) + 1;
+
+                const timestamps = rowsData
+                    .map(i => i.lastReviewTimestamp)
+                    .filter(ts => ts !== '-' && ts !== 0)
+                    .sort((a, b) => b - a);
+                
+                const lastReviewRank = item.lastReviewTimestamp === '-' || item.lastReviewTimestamp === 0 
+                    ? rowsData.length 
+                    : timestamps.indexOf(item.lastReviewTimestamp) + 1;
+
+                return {
+                    item,
+                    reviewRank,
+                    lastReviewRank,
+                    sum: reviewRank + lastReviewRank
+                };
+            });
+
+            // Sort by sum to get final rankings
+            allRanks.sort((a, b) => a.sum - b.sum);
+            const currentRanks = allRanks.find(r => r.item === data);
+            const finalRank = allRanks.findIndex(r => r.item === data) + 1;
+
+            // Check conditions for icons
+            const hasLowReviews = data.ratingCount < 100;
+            const twoYearsAgo = new Date();
+            twoYearsAgo.setFullYear(twoYearsAgo.getFullYear() - 2);
+            const lastReviewDate = data.lastReviewTimestamp ? new Date(data.lastReviewTimestamp * 1000) : null;
+            const isOldReview = lastReviewDate ? lastReviewDate < twoYearsAgo : true;
+            
+            const needsAttention = hasLowReviews && isOldReview;
+            const icon = needsAttention ? 
+                '<i class="fas fa-thumbs-down" style="color: #ff4444; margin-left: 5px;"></i>' : 
+                '<i class="fas fa-thumbs-up" style="color: #4CAF50; margin-left: 5px;"></i>';
+
+            // Check if this phone number has multiple addresses
+            const phone = data.phone.toLowerCase().trim();
+            let starIcon = '';
+            
+            if (phone !== '-' && phonesWithDifferentAddresses.has(phone)) {
+                console.log(`Adding star for ${data.name} (${phone})`);
+                starIcon = '<i class="fas fa-star" style="color: #FFD700; margin-left: 5px;" title="Same phone number used at different addresses"></i>';
+            }
+
+            row.innerHTML = `
+                <td class="stand-cell" 
+                    title="Reviews rank: #${currentRanks.reviewRank}, Last review rank: #${currentRanks.lastReviewRank} (Sum: ${currentRanks.sum})"
+                    >${finalRank}${icon}</td>
+                <td style="${nameStyle}">${statusCircle}${data.name}${starIcon}</td>
             <td>${data.owner}</td>
             <td>${data.category}</td>
             <td style="${addressStyle}">${data.streetAddress}</td>
@@ -611,6 +696,7 @@ function formatOpeningHours(openingHours) {
 // Add sorting functionality
 function initializeSorting() {
     const sortableColumns = {
+        'stand': 'number',
         'name': 'text',
         'owner': 'text',
         'category': 'text',
@@ -666,6 +752,19 @@ function handleSort(column, type) {
 
     // Sort rows
     rows.sort((rowA, rowB) => {
+        if (column === 'stand') {
+            // Special handling for stand column (same as initial sort)
+            const aMatch = rowA.cells[columnIndex].textContent.match(/#(\d+)/);
+            const bMatch = rowB.cells[columnIndex].textContent.match(/#(\d+)/);
+            
+            const aVal = aMatch ? parseInt(aMatch[1], 10) : Number.MAX_SAFE_INTEGER;
+            const bVal = bMatch ? parseInt(bMatch[1], 10) : Number.MAX_SAFE_INTEGER;
+            
+            console.log(`Sorting stand numbers: ${aVal} vs ${bVal}`);
+            
+            return sortDirection === 'asc' ? aVal - bVal : bVal - aVal;
+        }
+
         let a = rowA.cells[columnIndex].textContent.trim();
         let b = rowB.cells[columnIndex].textContent.trim();
 
@@ -1043,29 +1142,37 @@ function toggleCallList() {
         // Create list items from table data
         rows.forEach(row => {
             const cells = Array.from(row.cells);
-            const businessName = cells[0].textContent.replace(/[●]/, '').trim();
-            const phone = cells[5].textContent.trim();
-            const owner = cells[1].textContent.trim(); // Changed from cells[2] to cells[1] for owner
-            const address = cells[3].textContent.trim();
-            const city = cells[4].textContent.trim();
+            // Extract all needed content
+            // Get the full HTML content for the business name cell to preserve icons
+            const nameCell = cells[1].innerHTML;
+            // Extract just the business name text
+            const businessName = cells[1].textContent.replace(/[●]/, '').trim();
+            const standContent = cells[0].innerHTML;
+            const phone = cells[6].textContent.trim(); // Phone is in 7th column
+            const owner = cells[2].textContent.trim(); // Owner (Eigenaar) is in third column
+            const address = cells[4].textContent.trim(); // Address is in 5th column
+            const city = cells[5].textContent.trim(); // City (Plaats) is in 6th column
             
             const listItem = document.createElement('div');
             listItem.className = 'call-list-item';
             listItem.innerHTML = `
                 <div class="call-list-card">
-                    <div class="card-front">
-                        <div class="business-name">${businessName}</div>
-                        <div class="phone-number">
-                            ${phone}
-                            <a href="tel:${phone.replace(/[^\d+]/g, '')}" class="phone-link">
-                                <i class="fas fa-phone"></i>
-                            </a>
-                        </div>
+                <div class="card-front">
+                    <div class="business-name">${nameCell}</div>
+                    <div class="phone-number">
+                        ${phone}
+                        <a href="tel:${phone.replace(/[^\d+]/g, '')}" class="phone-link">
+                            <i class="fas fa-phone"></i>
+                        </a>
                     </div>
+                    <div class="stand-info" style="margin-top: 5px; color: #666;">
+                        ${standContent}
+                    </div>
+                </div>
                     <div class="card-back">
-                        <div class="card-value">${owner}</div>
-                        <div class="card-value">${address}</div>
-                        <div class="card-value">${city}</div>
+                    <div class="card-value">${owner}</div>
+                    <div class="card-value">${address}</div>
+                    <div class="card-value">${city}</div>
                     </div>
                 </div>
             `;
@@ -1098,5 +1205,3 @@ function toggleCallList() {
         table.style.display = 'table';
     }
 }
-
-
