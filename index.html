@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="nl">
 <head>
-    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mega INDII | Google Maps</title>
@@ -236,12 +236,16 @@
             background-color: var(--secondary);
         }
 
-        .sort-asc:after {
-            content: ' ↓';  /* Changed: arrow points down for ascending values */
+        .download-button i {
+            font-size: 1.1em;
         }
 
-        .sort-desc:after {
-            content: ' ↑';  /* Changed: arrow points up for descending values */
+        .sort-asc::after {
+            content: " ↓";  /* Changed: arrow points down for ascending values */
+        }
+
+        .sort-desc::after {
+            content: " ↑";  /* Changed: arrow points up for descending values */
         }
 
         /* Tooltip styles */
@@ -728,11 +732,23 @@
         </div>
     </div>
 
-    <script src="opening_hours.js"></script>
     <script src="script.js"></script>
+    <script src="photo-viewer.js"></script>
     
-    <script async
-        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDvkpaHy8GiE9mlZZl6Cyr6O_eRQlIaxZs&libraries=places,geometry&language=en&callback=initMap">
+    <script src="https://unpkg.com/@googlemaps/js-api-loader"></script>
+    <script>
+    const loader = new google.maps.plugins.loader.Loader({
+        apiKey: "AIzaSyDvkpaHy8GiE9mlZZl6Cyr6O_eRQlIaxZs", // Replace with your valid Google Maps API key
+        version: "weekly",
+        libraries: ["places", "geometry"]
+    });
+    
+    loader.load().then(() => {
+        initMap();
+    }).catch(e => {
+        console.error('Error loading Google Maps:', e);
+        showError('Error loading map service');
+    });
     </script>
 </body>
 </html>
