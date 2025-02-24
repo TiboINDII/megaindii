@@ -6,8 +6,8 @@ let currentPhotoIndex = 0;
 let currentPhotos = [];
 
 // Add sorting state
-let currentSortColumn = null;
-let sortDirection = 'asc';
+let currentSortColumn = 'stand';  // Set default sort column
+let sortDirection = 'asc';        // Set default sort direction
 
 function initMap() {
     try {
@@ -126,16 +126,9 @@ function processResults(results) {
     const resultsTable = document.getElementById('resultsTable');
     resultsBody.innerHTML = '';
     
-    // Remove this section that adds a download button
-    /*if (!document.querySelector('.download-button')) {
-        const downloadButton = document.createElement('button');
-        downloadButton.className = 'download-button';
-        downloadButton.innerHTML = '<i class="fas fa-file-excel"></i> Download Excel';
-        downloadButton.onclick = downloadTableToExcel;
-        resultsTable.parentNode.insertBefore(downloadButton, resultsTable);
-    }*/
-    
     let rowsData = [];
+    let processedCount = 0;
+    const totalCount = results.length;
 
     results.forEach(place => {
         service.getDetails({ 
@@ -237,7 +230,19 @@ function processResults(results) {
                 };
 
                 rowsData.push(rowData);
-                updateTable(rowsData);
+                processedCount++;
+                
+                // Only update table when all places are processed
+                if (processedCount === totalCount) {
+                    // Calculate ranks and update table
+                    rowsData = calculateTiboRank(rowsData);
+                    updateTable(rowsData);
+                    
+    // Sort by stand column immediately after table population
+    setTimeout(() => {
+        handleSort('stand', 'number');
+    }, 0);
+                }
             }
         });
     });
@@ -512,17 +517,6 @@ function updateTable(rowsData) {
     headers.forEach(h => h.classList.remove('sort-asc', 'sort-desc'));
     standHeader.classList.add('sort-asc');
 
-    // Sort data by stand value (using natural number comparison)
-    rowsData.sort((a, b) => {
-        const aMatch = a.tiboRank ? a.tiboRank.match(/#(\d+)/) : null;
-        const bMatch = b.tiboRank ? b.tiboRank.match(/#(\d+)/) : null;
-        
-        const aVal = aMatch ? parseInt(aMatch[1], 10) : Number.MAX_SAFE_INTEGER;
-        const bVal = bMatch ? parseInt(bMatch[1], 10) : Number.MAX_SAFE_INTEGER;
-
-        console.log(`Comparing ranks: ${aVal} vs ${bVal}`);
-        return aVal - bVal;
-    });
 
     rowsData.forEach(data => {
         const row = document.createElement('tr');
@@ -596,7 +590,7 @@ function updateTable(rowsData) {
             row.innerHTML = `
                 <td class="stand-cell" 
                     title="Reviews rank: #${currentRanks.reviewRank}, Last review rank: #${currentRanks.lastReviewRank} (Sum: ${currentRanks.sum})"
-                    >${finalRank}${icon}</td>
+                    data-rank="${finalRank}">${finalRank}${icon}</td>
                 <td style="${nameStyle}">${statusCircle}${data.name}${starIcon}</td>
             <td>${data.owner}</td>
             <td>${data.category}</td>
@@ -736,7 +730,7 @@ function handleSort(column, type) {
         sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
     } else {
         currentSortColumn = column;
-        sortDirection = 'desc';  // Default to descending
+        sortDirection = column === 'stand' ? 'asc' : 'desc'; // Default to ascending for 'stand', descending for others
     }
 
     // Add sorting indicator to clicked header
@@ -753,15 +747,9 @@ function handleSort(column, type) {
     // Sort rows
     rows.sort((rowA, rowB) => {
         if (column === 'stand') {
-            // Special handling for stand column (same as initial sort)
-            const aMatch = rowA.cells[columnIndex].textContent.match(/#(\d+)/);
-            const bMatch = rowB.cells[columnIndex].textContent.match(/#(\d+)/);
-            
-            const aVal = aMatch ? parseInt(aMatch[1], 10) : Number.MAX_SAFE_INTEGER;
-            const bVal = bMatch ? parseInt(bMatch[1], 10) : Number.MAX_SAFE_INTEGER;
-            
-            console.log(`Sorting stand numbers: ${aVal} vs ${bVal}`);
-            
+            // Get the rank values from the data-rank attribute
+            const aVal = parseInt(rowA.cells[columnIndex].getAttribute('data-rank')) || Number.MAX_SAFE_INTEGER;
+            const bVal = parseInt(rowB.cells[columnIndex].getAttribute('data-rank')) || Number.MAX_SAFE_INTEGER;
             return sortDirection === 'asc' ? aVal - bVal : bVal - aVal;
         }
 
