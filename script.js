@@ -91,10 +91,17 @@ function performSearch(location, businessType, maxLocations) {
                                     pagination.nextPage();
                                 }, 2000);
                             } else {
-                                // We have all results or reached maxLocations
+                                // Always get exactly maxLocations number of results
                                 const limitedResults = allResults.slice(0, maxLocations);
-                                processResults(limitedResults);
-                                loading.style.display = 'none';
+                                if (limitedResults.length < maxLocations && pagination && pagination.hasNextPage) {
+                                    // Continue searching if we haven't reached the desired count
+                                    setTimeout(() => {
+                                        pagination.nextPage();
+                                    }, 2000);
+                                } else {
+                                    processResults(limitedResults);
+                                    loading.style.display = 'none';
+                                }
                             }
                         } else {
                             showError('Er is een fout opgetreden bij het ophalen van de resultaten.');
@@ -642,7 +649,7 @@ function formatSocialLinks(placeDetails) {
 }
 
 function formatOpeningHours(openingHours) {
-    if (!openingHours || !openingHours.weekday_text) {
+    if (!openingHours || !openingHours.periods) {
         return { closingDays: '-' };
     }
 
@@ -657,25 +664,24 @@ function formatOpeningHours(openingHours) {
     ];
     
     const closedDays = [];
-    let daysWithHours = 0;
+    const openDays = new Set();
 
-    weekDays.forEach(day => {
-        const dayText = openingHours.weekday_text.find(text => 
-            text.toLowerCase().startsWith(day.en.toLowerCase())
-        );
-        
-        if (dayText) {
-            const hoursText = dayText.split(': ')[1];
-            if (hoursText.includes('Closed')) {
-                closedDays.push(day.nl);
-            } else {
-                daysWithHours++;
-            }
+    // Check each period to determine which days the place is open
+    openingHours.periods.forEach(period => {
+        if (period.open && period.open.day >= 0 && period.open.day <= 6) {
+            openDays.add(period.open.day);
         }
     });
 
-    // If all days have opening hours
-    if (daysWithHours === 7) {
+    // Find which days are closed (not in openDays)
+    weekDays.forEach((day, index) => {
+        if (!openDays.has(index)) {
+            closedDays.push(day.nl);
+        }
+    });
+
+    // If open all days
+    if (openDays.size === 7) {
         return { closingDays: 'geen' };
     }
 
